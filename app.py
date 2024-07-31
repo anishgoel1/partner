@@ -55,12 +55,21 @@ def generate_ai_response(ai_user, message):
     
     # Prepare the full message list for the API call
     messages = [
-        {"role": "system", "content": f"You are {ai_user}. Respond as {ai_user} would, based on the previous conversation and {ai_user}'s personality."},
-    ] + context
+        {"role": "system", "content": f"""You are {ai_user}. Respond as {ai_user} would, based on the previous conversation and {ai_user}'s personality.
+        Pay close attention to the context of the conversation and maintain consistency with {ai_user}'s previous statements and opinions.
+        If {ai_user} has expressed specific views or knowledge on a topic, incorporate that into your response.
+        Mimic {ai_user}'s communication style, including any unique phrases or mannerisms observed in the conversation."""},
+    ] + context[-10:]  # Use only the last 10 messages to stay within token limits
+
+    # Add a "few-shot" example to guide the model
+    messages.insert(1, {"role": "user", "content": "Hey, what do you think about our last conversation?"})
+    messages.insert(2, {"role": "assistant", "content": f"As {ai_user}, I found our last conversation quite interesting. [Insert a brief reference to a specific point from the original conversation]. What aspects of it would you like to discuss further?"})
 
     response = client.chat.completions.create(
         model=AI_MODEL,
-        messages=messages
+        messages=messages,
+        temperature=0.7,  # Adjust for more contextually appropriate responses
+        max_tokens=150  # Limit response length
     )
     return response.choices[0].message.content
 
