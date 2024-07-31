@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Application</title>
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f5f5;
+            font-size: 18px;
+        }
+        .sidebar {
+            width: 25%;
+            background-color: #f0f0f0;
+            border-right: 1px solid #ccc;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .sidebar ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .sidebar li {
+            margin-bottom: 10px;
+        }
+        .sidebar a {
+            display: block;
+            padding: 10px;
+            background-color: #e5e5ea;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #000;
+            font-weight: bold;
+        }
+        .sidebar a:hover {
+            background-color: #d1d1d6;
+        }
+        .chat-panel {
+            width: 75%;
+            display: none;
+            flex-direction: column;
+            background-color: white;
+        }
+        .chat-panel.active {
+            display: flex;
+        }
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #ccc;
+            font-weight: bold;
+            font-size: 24px;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: scroll;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            font-size: 18px;
+            line-height: 1.4;
+        }
+        .message.anish {
+            background-color: #007aff;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+        .message.greg, .message.gregai {
+            background-color: #e5e5ea;
+            color: black;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        .message-input {
+            display: flex;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-top: 1px solid #ccc;
+        }
+        .message-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            margin-right: 10px;
+            font-size: 16px;
+        }
+        .message-input button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007aff;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #user-select {
+            padding: 10px;
+            font-size: 18px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Chats</h2>
+        <ul>
+            <li><a href="#" onclick="showChat('anish-greg')">Greg</a></li>
+            <li><a href="#" onclick="showChat('anish-greg-ai')">Greg-AI</a></li>
+        </ul>
+    </div>
+    <div class="chat-panel" id="anish-greg-panel">
+        <div class="chat-header">Greg</div>
+        <div class="messages" id="anish-greg-messages"></div>
+        <div class="message-input">
+            <select id="user-select">
+                <option value="Anish">Anish</option>
+                <option value="Greg">Greg</option>
+            </select>
+            <input type="text" id="anish-greg-input" placeholder="Type Here..." onkeypress="handleKeyPress(event, 'anish-greg')">
+            <button onclick="sendMessage('anish-greg')">Send</button>
+        </div>
+    </div>
+    <div class="chat-panel" id="anish-greg-ai-panel">
+        <div class="chat-header">Greg-AI</div>
+        <div class="messages" id="anish-greg-ai-messages"></div>
+        <div class="message-input">
+            <input type="text" id="anish-greg-ai-input" placeholder="Type Here..." onkeypress="handleKeyPress(event, 'anish-greg-ai')">
+            <button onclick="sendMessage('anish-greg-ai')">Send</button>
+        </div>
+    </div>
+
+    <script>
+        let conversations = {
+            'anish-greg': [],
+            'anish-greg-ai': []
+        };
+
+        function showChat(panelId) {
+            document.querySelectorAll('.chat-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            document.getElementById(`${panelId}-panel`).classList.add('active');
+            updateMessages(panelId);
+        }
+
+        function handleKeyPress(event, panel) {
+            if (event.key === 'Enter') {
+                sendMessage(panel);
+            }
+        }
+
+        async function sendMessage(panel) {
+            let user, input;
+            if (panel === 'anish-greg') {
+                user = document.getElementById('user-select').value;
+                input = document.getElementById('anish-greg-input');
+            } else {
+                user = 'Anish';
+                input = document.getElementById('anish-greg-ai-input');
+            }
+            const message = input.value;
+            if (!message) return;
+
+            // Add message to the conversation and update UI immediately
+            conversations[panel].push({ user, message });
+            updateMessages(panel);
+            input.value = '';
+
+            // Send message to server
+            const response = await fetch('/send_message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user, message, panel })
+            });
+
+            const updatedConversations = await response.json();
+            conversations = updatedConversations;
+            updateMessages(panel);
+        }
+
+        function updateMessages(panel) {
+            const messagesContainer = document.getElementById(`${panel}-messages`);
+            messagesContainer.innerHTML = '';
+
+            conversations[panel].forEach(({ user, message }) => {
+                const messageElement = document.createElement('div');
+                messageElement.textContent = message;
+                messageElement.classList.add('message');
+                messageElement.classList.add(user.toLowerCase().replace('-', ''));
+                messagesContainer.appendChild(messageElement);
+            });
+
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Show the first chat by default
+        showChat('anish-greg');
+    </script>
+</body>
+</html>
